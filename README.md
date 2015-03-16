@@ -10,7 +10,7 @@ this might work if you have ruby installed and a tar executable.
 I wrote this script because I wanted to removed duplicated rigs after importing
 all rigs after a firmware update.  I wanted to just keep the updated versions of rigs.
 I start with the procedure described via a [doc presented on the forum](http://www.kemper-amps.com/forum/index.php/Thread/5596-Managing-Rigs-Presets-and-Performances-revised-Dec-2014/).
-You should follow that, but for the part where manipulation of the files comes into play,
+You should follow that up to step 6, but for the part where manipulation of the files comes into play,
 use this script.
 
 ```
