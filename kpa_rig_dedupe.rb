@@ -37,8 +37,8 @@ def find_dupes
           to_be_deleted << file_path
         else
           puts %Q!"#{file}" is newer. Deleting "#{File.basename(rigs[match['name']]['path'])}"!
-          #puts "#{match['name']} at #{rig_timestamp.asctime} is newer. Replacing #{match['name']} #{rigs[match['name']]['ts'].asctime}"
           to_be_deleted << rigs[match['name']]['path']
+          rigs[match['name']] = { 'ts' => rig_timestamp, 'path' => file_path }
         end
       else
         rigs[match['name']] = { 'ts' => rig_timestamp, 'path' => file_path }
