@@ -1,3 +1,13 @@
+#!/usr/bin/env ruby
+#
+#
+# This script will take a kpabackup file (a tarball), remove duplicate rigs 
+# (rigs that have the same name but different date), and tar what's left into a 
+# new kpabackup file.
+# I use this on OSX (Mac), it should also work on Linux.  I have not nor will I test on
+# MS Windows, so you are on your own to try it.  You won't break anything by trying it :).
+#
+
 module KPA
   class Manage
     require 'fileutils'
@@ -167,3 +177,52 @@ module KPA
     end
   end
 end
+
+## MAIN ##
+
+require 'optparse'
+require 'ostruct'
+
+options = OpenStruct.new(
+  dedupe_rigs: false,
+  clean_midi_assignments: false,
+  kpabackup: nil
+
+)
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: #{$PROGRAM_NAME} [options]"
+
+  opts.on('-f KPABACKUP', '--file', 'kpabackup file.') do |file|
+    if File.readable?(file)
+      options.kpabackup = file
+    else
+      opts.abort "Supplied kpabackup file, #{file}, is not readable."
+    end
+  end
+
+  opts.on('--dedupe-rigs') do |tf|
+    options.dedupe_rigs = tf
+  end
+
+  opts.on('--clean-midi-assignments') do |tf|
+    options.clean_midi_assignments = tf
+  end
+end
+begin
+  optparse.parse!
+rescue SystemExit
+  abort
+rescue OptionParser::ParseError => e
+  optparse.abort "#{e.message}\n\n#{optparse.help}"
+end
+
+if options.kpabackup.nil?
+  options.kpabackup = ARGF.filename
+end
+
+kpa = KPA::Manage.new(ARGF.filename)
+
+kpa.dedupe_rigs if options.dedupe_rigs
+kpa.clean_midi_assignments if options.clean_midi_assignments
+kpa.finish
