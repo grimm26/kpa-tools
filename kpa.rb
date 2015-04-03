@@ -7,17 +7,22 @@ module KPA
     def initialize(kpabackup=ARGF.filename)
       @kpabackup = kpabackup
       @midi = { nums: {}, rigs: {} }
-      verify or fail "Did supply a kpabackup name?"
+      @rigs = {}
+      verify or fail "Did you supply a kpabackup name?"
       expand_tarball
       load_midi_assignments
       read_rigs
     end
 
-    def dedupe_rigs
+    def finish
       mk_new_tar
       file_cleanup
       ensure
         file_cleanup
+    end
+
+    def dedupe_rigs
+      remove_rig_dupes
     end
 
     def clean_midi_assignments
@@ -26,7 +31,7 @@ module KPA
         unless File.exist?(File.join(WORKING_DIR,'Rigs',info[:rig_file]))
           if rig_exists?(info[:rig_name])
             # must be a different date of same rig
-            set_midi_num_path(num: mnum, rig_file: @rigs[info[:rig_name]][:path])
+            set_midi_num_path(num: mnum, rig_file: @rigs[info[:rig_name]][0][:path])
           else
             # Warn?
             @midi[:nums].delete(mnum)
@@ -48,7 +53,6 @@ module KPA
       @rigs.has_key?(rigname)
     end
 
-
     # I should use nokogiri for this, but that seems overkill since the XML for this is very simple
     # and does not deviate.  Plus, having nokogiri as a dependency is a PITA.
     def load_midi_assignments
@@ -64,12 +68,12 @@ module KPA
               rig_name: match['name']
             }
             if midi_has_rig?(match['name'])
-              @midi[:rigs][match['name']][:num] << match['num']
+              @midi[:rigs][match['name']][:midi_num] << match['num']
             else
               @midi[:rigs][match['name']] = {
                 rig_file: match['rig_file'],
                 ts: get_rig_ts(match),
-                rig_num: [match['num']]
+                midi_num: [match['num']]
               }
             end
           end
@@ -82,7 +86,7 @@ module KPA
         file.puts '<?xml version="1.0" encoding="iso-8859-1"?>'
         file.puts '<programs>'
         @midi[:nums].each do |mnum,rig|
-          file.puts %Q!<slot num="#{mnum}" name="#{rig[:rig_name]}">{DOCUMENTS}/KemperAmp/Rigs/#{File.basename(rig[:rig_file])}</slot>!
+          file.puts %Q! <slot num="#{mnum}" name="#{rig[:rig_name]}">{DOCUMENTS}/KemperAmp/Rigs/#{File.basename(rig[:rig_file])}</slot>!
         end
         file.puts '</programs>'
       end
@@ -109,48 +113,53 @@ module KPA
     end
 
     def get_rig_midi_nums(rigname=nil)
-      @midi[:rigs][match['name']][:num]
+      @midi[:rigs][match['name']][:midi_num]
     end
 
     def set_midi_num_path(num: nil, rig_file: nil)
       @midi[:nums][num][:rig_file] = rig_file
     end
 
-    def remove_rig_dupes
-      rigs = {}
+    def read_rigs
       rig_regex = Regexp.new('^(?<name>.+) - (?<year>\d+)-(?<month>\d+)-(?<day>\d+) (?<hour>\d+)-(?<min>\d+)-(?<sec>\d+)\.kipr$')
       Dir.foreach(File.join(WORKING_DIR,'Rigs')) do |file|
         match = rig_regex.match(file)
         if match
           file_path = File.join(WORKING_DIR,'Rigs',file)
           rig_timestamp = get_rig_ts(match)
-          if rigs.has_key?(match['name'])
+          if @rigs.has_key?(match['name'])
             # duplicate found
-            if rig_timestamp < rigs[match['name']][:ts]
-              puts %Q!"#{file}" is older. Keeping "#{File.basename(rigs[match['name']][:path])}"!
-              File.unlink(file_path)
-            else
-              puts %Q!"#{file}" is newer. Deleting "#{File.basename(rigs[match['name']][:path])}"!
-              File.unlink(rigs[match['name']][:path])
-              rigs[match['name']] = { ts: rig_timestamp, path: file_path }
-            end
+            @rigs[match['name']].unshift({ ts: rig_timestamp, path: file_path })
           else
-            rigs[match['name']] = { ts: rig_timestamp, path: file_path }
+            @rigs[match['name']] = [{ ts: rig_timestamp, path: file_path }]
           end
         end
       end
-      return rigs
+      sort_rigs
     end
 
-    def read_rigs
-      # Have to dedupe rigs anyway
-      @rigs = remove_rig_dupes
+    def sort_rigs
+      @rigs.each do |name,list|
+        list.sort!{ |a,b| b[:ts] <=> a[:ts] }
+      end
     end
 
+    def remove_rig_dupes
+      @rigs.each do |rig_name, rig_list|
+        if rig_list.length > 1
+          # duplicate found
+          rig_list[1..rig_list.length].each do |dupe_rig|
+            puts %Q!Deleting duplicate rig "#{File.basename(dupe_rig[:path])}"!
+            File.unlink(dupe_rig[:path])
+            @rigs[rig_name].delete(dupe_rig)
+          end
+        end
+      end
+    end
 
     def mk_new_tar
       system "tar -C #{WORKING_DIR} -cf #{new_kpabackup_name} ."
-      puts "New backup file created with duplicates removed: #{new_kpabackup_name}"
+      puts "New kpabackup file created with modifications: #{new_kpabackup_name}"
     end
 
     def file_cleanup

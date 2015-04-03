@@ -11,5 +11,6 @@ require_relative 'kpa'
 
 kpa = KPA::Manage.new(ARGF.filename)
 
-#kpa.dedupe_rigs
+kpa.dedupe_rigs
 kpa.clean_midi_assignments
+kpa.finish
