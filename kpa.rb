@@ -44,6 +44,7 @@ module KPA
             set_midi_num_path(num: mnum, rig_file: @rigs[info[:rig_name]][0][:path])
           else
             # Warn?
+            puts "Could not find rig #{info[:rig_name]} for MIDI program number #{mnum}"
             @midi[:nums].delete(mnum)
           end
         end
@@ -104,6 +105,10 @@ module KPA
 
     def new_kpabackup_name
       kpabackup.gsub(/\s+/,'_').insert(-11,'-updated')
+    end
+
+    def kpabackup_dir
+      File.expand_path(File.dirname(kpabackup))
     end
 
     def verify
@@ -168,7 +173,7 @@ module KPA
     end
 
     def mk_new_tar
-      system "tar -C #{WORKING_DIR} -cf #{new_kpabackup_name} ."
+      system "cd #{WORKING_DIR} && COPYFILE_DISABLE=1 tar -cf #{File.join(kpabackup_dir,new_kpabackup_name)} * .??*"
       puts "New kpabackup file created with modifications: #{new_kpabackup_name}"
     end
 
