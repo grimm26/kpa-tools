@@ -1,7 +1,7 @@
 # kpa-tools
 Some tools/scripts that I have written to use with the Kemper Profiler
 
-## kpa_rig_dedupe.rb
+## kpa.rb
 This tool requires [Ruby](http://www.ruby-lang.org).  If you are on a Mac (OSX), then
 you already have ruby installed and this will work.  If you are running Linux, you
 probably also have ruby already or can easily install it.  If you are on Windows,
@@ -14,16 +14,23 @@ You should follow that up to step 6, but for the part where manipulation of the 
 use this script.
 
 <pre>
-<strong>% kpa_rig_dedupe.rb 2015-03-15\ 16-51-07\ -\ Some\ Dude.kpabackup</strong>
+<strong>% kpa.rb --dedupe-rigs 2015-03-15\ 16-51-07\ -\ Some\ Dude.kpabackup</strong>
 "1962 Electro - 2015-02-13 20-57-39.kipr" is newer. Deleting "1962 Electro - 2014-07-03 16-35-18.kipr"
 "AC Clean - R121 - 2015-02-13 20-57-39.kipr" is newer. Deleting "AC Clean - R121 - 2014-07-03 14-49-41.kipr"
 ....
 "Zo-Di-Yak Cranked - 2015-02-13 20-57-39.kipr" is newer. Deleting "Zo-Di-Yak Cranked - 2014-07-02 17-43-39.kipr"
 "Zo-Di-Yak Crunch 2 - 2015-02-13 20-57-39.kipr" is newer. Deleting "Zo-Di-Yak Crunch 2 - 2014-07-02 17-46-42.kipr"
-New backup file created with duplicates removed: DeDupedRigs.kpabackup
- <strong>% ls -l *.kpabackup</strong>
- -rwxr-xr-x  1 dude  staff  4276736 Mar 15 16:57 2015-03-15 16-51-07 - Some Dude.kpabackup*
- -rw-r--r--  1 dude  staff  2833408 Mar 15 23:11 DeDupedRigs.kpabackup
+New backup file created with duplicates removed: 2015-03-15\ 16-51-07\ -\ Some\ Dude-updated.kpabackup
 </pre>
 
-The backup file DeDupedRigs.kpabackup is the one that you restore into your KPA.
+The updated backup file is the one that you restore into your KPA.
+
+The `--clean-midi-assignments` option will also verify that the MIDI program number assignments for browse mode are valid.  You should use
+this option when you dedupe rigs.
+
+```
+Usage: ./kpa.rb [options]
+    -f, --file KPABACKUP             kpabackup file.
+        --dedupe-rigs
+        --clean-midi-assignments
+```
